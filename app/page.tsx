@@ -1,18 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import {
-  Search,
-  Bell,
-  ChevronDown,
-  RefreshCw,
-  Plus,
-  Clock,
-  Check,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-} from "lucide-react"
+import { Search, ChevronDown, RefreshCw, Plus, Clock, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -35,12 +24,13 @@ type Coin = {
   id: string
   name: string
   symbol: string
-  balance: number
-  rate: number
-  excessCoin: number
+  platform: string
+  balance: string
+  rateNGN: string
+  rateUSD: string
+  excessCoin: string
   change: number
   color: string
-  icon: string
 }
 
 type Platform = "all" | "binance" | "payful" | "nexones" | "bybit" | "kucoin" | "other"
@@ -76,8 +66,6 @@ const CryptoIcon = ({ symbol, className }: { symbol: string; className?: string 
         </svg>
       </div>
     ),
-
-
     ETH: (
       <div className={`${className} bg-[#627eea] rounded-full flex items-center justify-center`}>
         <svg viewBox="0 0 24 24" className="w-[12px] h-[12px] fill-white">
@@ -96,40 +84,31 @@ const CryptoIcon = ({ symbol, className }: { symbol: string; className?: string 
   )
 }
 
-// Sample data
-const coins: Coin[] = [
+// Sample data from mockup
+export const coinStats = [
   {
-    id: "btc",
+    id: "btc-paxful",
     name: "Bitcoin",
     symbol: "BTC",
-    balance: 0.45,
-    rate: 62500,
-    excessCoin: 0.2,
+    platform: "Paxful",
+    balance: "0.2145",
+    rateNGN: "97,000,000",
+    rateUSD: "65,000",
+    excessCoin: "0.03",
     change: 2.3,
     color: "#f7931a",
-    icon: "₿",
   },
   {
-    id: "usdt",
+    id: "usdt-noones",
     name: "Tether",
     symbol: "USDT",
-    balance: 1250.75,
-    rate: 1,
-    excessCoin: 500,
+    platform: "Noones",
+    balance: "550",
+    rateNGN: "1,500",
+    rateUSD: "1.00",
+    excessCoin: "100",
     change: 0.01,
     color: "#26a17b",
-    icon: "₮",
-  },
-  {
-    id: "eth",
-    name: "Ethereum",
-    symbol: "ETH",
-    balance: 3.2,
-    rate: 3450,
-    excessCoin: 1.5,
-    change: 1.2,
-    color: "#627eea",
-    icon: "Ξ",
   },
 ]
 
@@ -208,7 +187,7 @@ export default function CryptoDashboard() {
   const [exchangeModalOpen, setExchangeModalOpen] = useState(false)
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
   const [capitalCoin, setCapitalCoin] = useState("")
-  const [excessCoin, setExcessCoin] = useState(0)
+  const [excessCoin, setExcessCoin] = useState("")
   const [useMarketRate, setUseMarketRate] = useState(true)
   const [limitRate, setLimitRate] = useState("")
   const [clockedIn, setClockedIn] = useState(true)
@@ -288,19 +267,21 @@ export default function CryptoDashboard() {
   // Handle coin exchange
   const handleExchangeCoin = (coin: Coin) => {
     setSelectedCoin(coin)
-    setCapitalCoin(String(coin.balance - coin.excessCoin))
-    setExcessCoin(coin.excessCoin)
+    const excessCoinValue = coin.excessCoin
+    setCapitalCoin(String(Number.parseFloat(coin.balance) - Number.parseFloat(excessCoinValue)))
+    setExcessCoin(excessCoinValue)
     setExchangeModalOpen(true)
   }
 
   // Calculate excess coin based on capital input
   const calculateExcessCoin = (capital: string) => {
-    if (!selectedCoin || capital === "") return 0
+    if (!selectedCoin || capital === "") return "0"
 
     const capitalValue = Number.parseFloat(capital)
-    if (isNaN(capitalValue)) return 0
+    const balanceValue = Number.parseFloat(selectedCoin.balance)
+    if (isNaN(capitalValue)) return "0"
 
-    return Math.max(0, selectedCoin.balance - capitalValue)
+    return String(Math.max(0, balanceValue - capitalValue))
   }
 
   // Handle capital coin input change
@@ -344,32 +325,18 @@ export default function CryptoDashboard() {
 
   // Get status badge with icon
   const getStatusBadge = (status: TransactionStatus) => {
-  const baseClass =
-    "inline-flex items-center gap-[4px] text-[12px] px-[8px] py-[3px] rounded-full leading-none font-medium";
+    const baseClass =
+      "inline-flex items-center gap-[4px] text-[12px] px-[8px] py-[3px] rounded-full leading-none font-medium"
 
-  switch (status) {
-    case "completed":
-      return (
-        <span className={`${baseClass} bg-[#22c55e]/20 text-[#22c55e]`}>
-          Completed
-        </span>
-      );
-    case "pending":
-      return (
-        <span className={`${baseClass} bg-[#ca8a04]/20 text-[#ca8a04]`}>
-          Pending
-        </span>
-      );
-    case "failed":
-      return (
-        <span className={`${baseClass} bg-[#ef4444]/20 text-[#ef4444]`}>
-          Failed
-        </span>
-      );
+    switch (status) {
+      case "completed":
+        return <span className={`${baseClass} bg-[#22c55e]/20 text-[#22c55e]`}>Completed</span>
+      case "pending":
+        return <span className={`${baseClass} bg-[#ca8a04]/20 text-[#ca8a04]`}>Pending</span>
+      case "failed":
+        return <span className={`${baseClass} bg-[#ef4444]/20 text-[#ef4444]`}>Failed</span>
+    }
   }
-};
-
-
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -421,22 +388,20 @@ export default function CryptoDashboard() {
             Clock Out
           </Button>
 
-<div className="flex items-center ml-auto">
-  
-  
-  <div className="flex items-center gap-[8px]">
-    {/* Avatar */}
-    <div className="w-[32px] h-[32px] bg-[#f3f4f6] rounded-full flex items-center justify-center">
-      <span className="text-[14px] font-medium text-[#6b7280]">AJ</span>
-    </div>
+          <div className="flex items-center ml-auto">
+            <div className="flex items-center gap-[8px]">
+              {/* Avatar */}
+              <div className="w-[32px] h-[32px] bg-[#f3f4f6] rounded-full flex items-center justify-center">
+                <span className="text-[14px] font-medium text-[#6b7280]">AJ</span>
+              </div>
 
-    {/* Name and Role */}
-    <div className="flex flex-col leading-tight">
-      <span className="text-[14px] font-medium text-[#1f2937]">Alex Johnson</span>
-      <span className="text-[12px] text-[#6b7280]">Admin</span>
-    </div>
-  </div>
-</div>
+              {/* Name and Role */}
+              <div className="flex flex-col leading-tight">
+                <span className="text-[14px] font-medium text-[#1f2937]">Alex Johnson</span>
+                <span className="text-[12px] text-[#6b7280]">Admin</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -547,7 +512,7 @@ export default function CryptoDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[16px]">
             {/* Coin Cards */}
-            {coins.map((coin) => (
+            {coinStats.map((coin) => (
               <Card
                 key={coin.id}
                 className="p-[16px] border border-[#e5e7eb] rounded-[8px] shadow-none cursor-pointer hover:border-[#f6b10a] transition-colors"
@@ -564,6 +529,10 @@ export default function CryptoDashboard() {
                   </span>
                 </div>
                 <div className="mb-[12px]">
+                  <div className="text-[14px] text-[#6b7280]">Platform</div>
+                  <div className="font-medium text-[14px]">{coin.platform}</div>
+                </div>
+                <div className="mb-[12px]">
                   <div className="text-[14px] text-[#6b7280]">Balance</div>
                   <div className="font-bold text-[18px]">
                     {coin.balance} {coin.symbol}
@@ -571,7 +540,8 @@ export default function CryptoDashboard() {
                 </div>
                 <div className="mb-[12px]">
                   <div className="text-[14px] text-[#6b7280]">Current Rate</div>
-                  <div className="font-bold text-[16px]">US ${coin.rate.toLocaleString()}</div>
+                  <div className="font-bold text-[16px]">US ${coin.rateUSD}</div>
+                  <div className="text-[14px] text-[#6b7280]">₦{coin.rateNGN}</div>
                 </div>
                 <div>
                   <div className="text-[14px] text-[#f6b10a]">
@@ -652,7 +622,7 @@ export default function CryptoDashboard() {
               <div className="relative">
                 <select className="w-full p-[8px] border border-[#e5e7eb] rounded-[4px] appearance-none text-[14px]">
                   <option>Select coin</option>
-                  {coins.map((coin) => (
+                  {coinStats.map((coin) => (
                     <option key={coin.id} value={coin.id}>
                       {coin.symbol}
                     </option>
@@ -685,7 +655,7 @@ export default function CryptoDashboard() {
               <div className="relative">
                 <select className="w-full p-[8px] border border-[#e5e7eb] rounded-[4px] appearance-none text-[14px]">
                   <option>Select coin</option>
-                  {coins.map((coin) => (
+                  {coinStats.map((coin) => (
                     <option key={coin.id} value={coin.id}>
                       {coin.symbol}
                     </option>
@@ -700,7 +670,7 @@ export default function CryptoDashboard() {
               <div className="relative">
                 <select className="w-full p-[8px] border border-[#e5e7eb] rounded-[4px] appearance-none text-[14px]">
                   <option>Select a coin</option>
-                  {coins.map((coin) => (
+                  {coinStats.map((coin) => (
                     <option key={coin.id} value={coin.id}>
                       {coin.symbol}
                     </option>
@@ -748,11 +718,22 @@ export default function CryptoDashboard() {
                 </Label>
                 <Input
                   id="current-rate"
-                  value={selectedCoin ? `$${selectedCoin.rate.toLocaleString()}` : ""}
+                  value={selectedCoin ? `$${selectedCoin.rateUSD}` : ""}
                   disabled
                   className="mt-[8px] text-[14px] p-[8px] border border-[#e5e7eb] rounded-[4px]"
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="ngn-rate" className="text-[14px] font-medium">
+                NGN Rate
+              </Label>
+              <Input
+                id="ngn-rate"
+                value={selectedCoin ? `₦${selectedCoin.rateNGN}` : ""}
+                disabled
+                className="mt-[8px] text-[14px] p-[8px] border border-[#e5e7eb] rounded-[4px]"
+              />
             </div>
             <div>
               <Label htmlFor="capital-coin" className="text-[14px] font-medium">
